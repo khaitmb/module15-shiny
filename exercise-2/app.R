@@ -1,18 +1,39 @@
 # Load the shiny, ggplot2, and dplyr libraries
+install.packages("shiny")
+install.packages("ggplot2")
+install.packages("dplyr")
 
+library(shiny)
+library(ggplot2)
+library(dplyr)
 
 # You will once again be working with the `diamonds` data set provided by ggplot2
 # Use dplyr's `sample_n()` function to get a random 3000 rows from the data set
 # Store this sample in a variable `diamonds.sample`
-
+diamonds.sample <- sample_n(diamonds, 3000)
 
 # For convenience store the `range()` of values for the `price` and `carat` values
 # for the ENTIRE diamonds dataset.
-
+price_range <- range(diamonds$price) # 326 18823
+carat_range <- range(diamonds$carat) # 0.20 5.01
 
 
 # Define a UI using a fluidPage layout
-
+ui <- fluidPage(
+  titlePanel("Diamond Viewer"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("price", "Price (in dollars)", min = min(price_range), max = max(price_range), min(price_range)),
+      sliderInput("carat", "Carats", min = min(carat_range), max = max(carat_range), min(carat_range)),
+      checkboxInput("trendline", "Show Trendline", value = TRUE),
+      selectInput("facet", "Facet By", c("cut", "clarity", "color"))
+    ),
+    
+    mainPanel(
+      plotOutput('plot')
+    )
+  )
+)
 
   # Include a `titlePanel` with the title "Diamond Viewer"
 
@@ -49,7 +70,19 @@
 
 
 # Define a Server function for the app
-
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    diamonds.filtered <- filter(diamonds.sample, price <= input$price & carat <= input$carat)
+    graph <- ggplot(data = diamonds.filtered, mapping = aes(x = carat, y = price, color = clarity)) +
+      geom_point() +
+      facet_wrap(~input$facet)
+    if (input$trendline == TRUE) {
+      return(graph + geom_smooth(se = FALSE))
+    } else {
+      return(graph)
+    }
+  })
+}
 
   # Assign a reactive `renderPlot()` function to the outputted `plot`
 
@@ -78,7 +111,7 @@
 
 
 # Create a new `shinyApp()` using the above ui and server
-
+shinyApp(ui = ui, server = server)
 
 ## Double Bonus: For fun, can you make a similar browser for the `mpg` data set?
 ## it makes the bonus data table a lot more useful
